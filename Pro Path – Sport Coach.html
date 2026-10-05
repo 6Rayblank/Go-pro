@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pro Path – Sport Coach</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--tx:#161b2e;--mu:#6b7390;--ac:#2f6bff;--ok:#18a56a;--bd:#e3e7f2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1220;--card:#181e33;--tx:#eef1fb;--mu:#98a1c2;--ac:#5b8cff;--bd:#272f4d}}
+:root[data-theme="dark"]{--bg:#0e1220;--card:#181e33;--tx:#eef1fb;--mu:#98a1c2;--ac:#5b8cff;--bd:#272f4d}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:24px;margin:8px 0 4px}h2{font-size:18px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin:12px 0}
+.mu{color:var(--mu);font-size:14px}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:12px;border-radius:12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
+button.g{background:transparent;color:var(--ac);border:1px solid var(--bd)}
+button.w{width:100%;margin-top:14px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;color:var(--mu);border-radius:0;padding:12px 4px;font-size:13px}
+nav button.on{color:var(--ac)}
+.day{padding:10px 0;border-top:1px solid var(--bd)}.day:first-of-type{border-top:0}
+.bar{display:flex;align-items:flex-end;gap:6px;height:70px;margin-top:8px}
+.bar i{flex:1;background:var(--ac);border-radius:6px 6px 0 0;min-height:4px}
+.banner{background:var(--ac);color:#fff;border-radius:14px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.banner button{background:#fff;color:var(--ac)}
+.chips{display:flex;gap:6px}.chips button{flex:1;background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+.chips button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.sw{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:flex-end;justify-content:center;z-index:9}
+.sheet{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:90%;overflow:auto}
+</style></head><body><main id="app"></main><div id="nav"></div>
+<script>
+const $=s=>document.querySelector(s),KEY="procoach_v1";
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let S=null,tab="plan",db=null,sample=null,myId=null,modal=null,busy=false,friendData={},friendMsg="";
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+const today=()=>new Date().toLocaleDateString("en-CA");
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}syncProfile()}
+const hd=cm=>S.units==="imperial"?`${Math.floor(cm/2.54/12)}'${Math.round(cm/2.54%12)}"`:`${Math.round(cm)} cm`;
+const wd=kg=>S.units==="imperial"?`${Math.round(kg*2.2046)} lb`:`${Math.round(kg*10)/10} kg`;
+function syncProfile(){if(!db||!myId||!S)return;
+ const d=S.share?{name:S.name,sport:S.sport,hCm:S.hCm,wKg:S.wKg,shared:true}:{name:S.name,shared:false};
+ db.doc("profiles/"+myId).set(d).catch(()=>{})}
+function due(){if(!S)return false;if(S.checkins.some(c=>c.date===today()))return false;
+ const n=new Date(),[h,m]=S.remind.split(":");return n.getHours()*60+n.getMinutes()>=h*60+ +m}
+function streak(){let n=0,d=new Date();for(;;){const k=d.toLocaleDateString("en-CA");
+ if(S.checkins.some(c=>c.date===k)){n++;d.setDate(d.getDate()-1)}else if(n===0&&k===today()){d.setDate(d.getDate()-1)}else break}return n}
+function fallbackPlan(){const f=["Technique & fundamentals","Strength & power","Conditioning","Skill drills + game sense","Mobility & recovery","Scrimmage / practice","Rest"];
+ const days=[];for(let i=0;i<7;i++)days.push({day:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],focus:i<S.days?f[i%6]:"Rest",drills:i<S.days?["Warm-up 10 min","Main work 30–40 min","Cool-down 10 min"]:["Light walk or stretching"]});
+ return{summary:`A ${S.days}-day weekly structure for ${S.sport}. Adjust as you progress.`,days,tips:["Sleep 8+ hours","Eat protein with every meal","Track progress weekly"]}}
+async function genPlan(){if(busy)return;busy=true;render();
+ try{if(!sample)throw 0;const p=`You are an expert ${S.sport} coach. Athlete: ${S.name}, age ${S.age}, ${Math.round(S.hCm)} cm, ${Math.round(S.wKg)} kg, level ${S.level}, goal: ${S.goal||"get much better"}, trains ${S.days} days/week. Recent check-ins: ${JSON.stringify(S.checkins.slice(-5))}. Return ONLY JSON: {"summary":string,"days":[{"day":"Mon".."Sun","focus":string,"drills":[string,string,string]}] (7 entries),"tips":[string,string,string]}. Be specific to ${S.sport} and the athlete's body and level. Keep it concise.`;
+  S.plan=await sample.json(p)}catch(e){S.plan=fallbackPlan()}
+ busy=false;save();render()}
+function fmtCI(){return S.checkins.slice(-7)}
+function render(){const a=$("#app");
+ if(!S){a.innerHTML=`<h1>🏆 Pro Path</h1><p class="mu">Tell us about you and we'll build a plan for any sport.</p><div class="card">
+ <label>Your name</label><input id="n"><label>Sport</label><input id="sp" placeholder="Basketball, tennis, swimming…">
+ <label>Skill level</label><select id="lv"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select>
+ <div class="row"><div><label>Age</label><input id="ag" type="number" inputmode="numeric"></div><div><label>Units</label><select id="un"><option value="metric">cm / kg</option><option value="imperial">in / lb</option></select></div></div>
+ <div class="row"><div><label>Height (cm or in)</label><input id="h" type="number" inputmode="decimal"></div><div><label>Weight (kg or lb)</label><input id="w" type="number" inputmode="decimal"></div></div>
+ <label>Goal (optional)</label><input id="go" placeholder="Make varsity, run faster…">
+ <label>Training days per week</label><select id="dy">${[2,3,4,5,6].map(d=>`<option ${d==4?"selected":""}>${d}</option>`).join("")}</select>
+ <button class="w" id="go1">Build my plan</button><p class="mu" id="err" style="color:#d33"></p></div>`;
+  $("#go1").onclick=()=>{const g=i=>$(i).value,im=g("#un")==="imperial",h=+g("#h"),w=+g("#w");
+   if(!g("#n").trim()||!g("#sp").trim()||!h||!w){$("#err").textContent="Please fill in name, sport, height and weight.";return}
+   S={name:g("#n").trim(),sport:g("#sp").trim(),level:g("#lv"),age:+g("#ag")||0,units:g("#un"),hCm:im?h*2.54:h,wKg:im?w/2.2046:w,goal:g("#go"),days:+g("#dy"),share:true,remind:"18:00",plan:null,checkins:[],friends:[]};
+   save();genPlan()};$("#nav").innerHTML="";return}
+ $("#nav").innerHTML=`<nav>${[["plan","📋","Plan"],["prog","📈","Progress"],["fr","👥","Friends"],["set","⚙️","Settings"]].map(([k,i,l])=>`<button class="${tab===k?"on":""}" data-t="${k}">${i}<br>${l}</button>`).join("")}</nav>`;
+ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();if(tab==="fr")loadFriends()});
+ let h=due()?`<div class="banner"><span>⏰ Time for your daily check-in</span><button id="ci">Check in</button></div>`:"";
+ if(tab==="plan"){const p=S.plan;h+=`<h1>${esc(S.sport)} plan</h1><p class="mu">${esc(S.level)} · ${hd(S.hCm)} · ${wd(S.wKg)}</p>`;
+  if(busy)h+=`<div class="card">Building your plan…</div>`;
+  else if(p){h+=`<div class="card"><p>${esc(p.summary)}</p>${p.days.map(d=>`<div class="day"><b>${esc(d.day)}</b> · ${esc(d.focus)}<div class="mu">${(d.drills||[]).map(esc).join(" • ")}</div></div>`).join("")}</div><div class="card"><h2>Pro tips</h2>${(p.tips||[]).map(t=>`<div>• ${esc(t)}</div>`).join("")}</div>`}
+  h+=`<button class="w g" id="regen">${p?"Regenerate plan":"Generate plan"}</button>`}
+ if(tab==="prog"){const c=fmtCI();h+=`<h1>Progress</h1><div class="card"><div class="sw"><div><h2>🔥 ${streak()} day streak</h2><span class="mu">${S.checkins.length} check-ins total</span></div><button id="ci">Check in</button></div>
+  ${c.length?`<div class="bar">${c.map(x=>`<i style="height:${x.rating*20}%" title="${x.date}"></i>`).join("")}</div><div class="mu">Effort rating, last ${c.length} check-ins</div>`:`<p class="mu">No check-ins yet.</p>`}</div>
+  ${S.checkins.slice(-8).reverse().map(x=>`<div class="card"><b>${x.date}</b> · effort ${x.rating}/5 · ${esc(x.followed)}${x.wKg?` · ${wd(x.wKg)}`:""}<div class="mu">${esc(x.note||"")}</div></div>`).join("")}`}
+ if(tab==="fr"){h+=`<h1>Friends</h1>`;
+  if(!db||!myId)h+=`<div class="card mu">Friends need you to be signed in to Claude. Everything else works offline.</div>`;
+  else{h+=`<div class="card"><h2>Your friend code</h2><input readonly value="${esc(myId)}" onclick="this.select()"><p class="mu">Share this so friends can add you.</p><label>Add a friend's code</label><div class="row"><input id="fc" style="flex:3"><button id="addf" style="flex:1">Add</button></div><p class="mu">${esc(friendMsg)}</p></div>`;
+   h+=S.friends.map(id=>{const d=friendData[id];return `<div class="card"><div class="sw"><b>${d?esc(d.name||"Friend"):"Loading…"}</b><button class="g" data-rm="${esc(id)}">Remove</button></div>${d&&d.shared?`<div class="mu">${esc(d.sport)} · ${hd(d.hCm)} · ${wd(d.wKg)}</div>`:`<div class="mu">Stats hidden by this friend</div>`}</div>`}).join("")||`<p class="mu">No friends yet.</p>`}}
+ if(tab==="set"){h+=`<h1>Settings</h1><div class="card"><div class="sw"><div><b>Share my height, weight & sport</b><div class="mu">Friends can see them when on</div></div><input type="checkbox" id="sh" style="width:auto" ${S.share?"checked":""}></div></div>
+  <div class="card"><label>Daily check-in time</label><input type="time" id="rt" value="${S.remind}"><p class="mu">The prompt appears when you open the app after this time. Browsers can't send background notifications from here.</p>
+  <label>Units</label><select id="u2"><option value="metric" ${S.units==="metric"?"selected":""}>cm / kg</option><option value="imperial" ${S.units==="imperial"?"selected":""}>in / lb</option></select></div>
+  <button class="w g" id="rst">Reset all data</button>`}
+ a.innerHTML=h;
+ const on=(s,f)=>{const e=$(s);if(e)e.onclick=f};
+ on("#ci",()=>{modal={r:3,f:"Yes"};showModal()});on("#regen",genPlan);
+ on("#addf",addFriend);document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{S.friends=S.friends.filter(x=>x!==b.dataset.rm);save();render()});
+ if($("#sh"))$("#sh").onchange=e=>{S.share=e.target.checked;save()};
+ if($("#rt"))$("#rt").onchange=e=>{S.remind=e.target.value||"18:00";save()};
+ if($("#u2"))$("#u2").onchange=e=>{S.units=e.target.value;save()};
+ on("#rst",()=>{if(confirm("Delete all your data on this device?")){try{localStorage.removeItem(KEY)}catch(e){}if(db&&myId)db.doc("profiles/"+myId).delete().catch(()=>{});S=null;render()}})}
+function showModal(){const m=document.createElement("div");m.className="modal";m.id="md";
+ m.innerHTML=`<div class="sheet"><h2>Daily check-in</h2><label>How hard did you train? (1 easy – 5 max)</label><div class="chips" id="rt5">${[1,2,3,4,5].map(i=>`<button data-v="${i}" class="${i===3?"on":""}">${i}</button>`).join("")}</div>
+ <label>Did you follow the plan?</label><div class="chips" id="fl">${["Yes","Partly","No"].map(x=>`<button data-v="${x}" class="${x==="Yes"?"on":""}">${x}</button>`).join("")}</div>
+ <label>Current weight (optional, ${S.units==="imperial"?"lb":"kg"})</label><input id="cw" type="number" inputmode="decimal"><label>Notes</label><textarea id="cn" rows="2" placeholder="What went well? Any pain?"></textarea>
+ <div class="row"><button class="g" id="cx" style="margin-top:14px">Later</button><button id="cs" style="margin-top:14px">Save</button></div></div>`;
+ document.body.appendChild(m);
+ const chips=(id,k)=>m.querySelectorAll(`#${id} button`).forEach(b=>b.onclick=()=>{m.querySelectorAll(`#${id} button`).forEach(x=>x.classList.remove("on"));b.classList.add("on");modal[k]=k==="r"?+b.dataset.v:b.dataset.v});
+ chips("rt5","r");chips("fl","f");$("#cx").onclick=()=>m.remove();
+ $("#cs").onclick=()=>{let w=+$("#cw").value||0;if(w&&S.units==="imperial")w/=2.2046;if(w)S.wKg=w;
+  S.checkins=S.checkins.filter(c=>c.date!==today());S.checkins.push({date:today(),rating:modal.r,followed:modal.f,wKg:w||null,note:$("#cn").value.trim()});save();m.remove();render()}}
+async function loadFriends(){if(!db)return;for(const id of S.friends){try{const s=await db.doc("profiles/"+id).get();friendData[id]=s.exists?s.data():{name:"Unknown",shared:false}}catch(e){friendData[id]={name:"Unavailable",shared:false}}}render()}
+async function addFriend(){const id=$("#fc").value.trim();
+ if(!id||id===myId||S.friends.includes(id)){friendMsg=id===myId?"That's your own code.":"Enter a new friend code.";render();return}
+ try{const s=await db.doc("profiles/"+id).get();if(!s.exists){friendMsg="No one found with that code.";render();return}
+  S.friends.push(id);friendData[id]=s.data();friendMsg="Friend added!";save();render()}catch(e){friendMsg="Couldn't reach that profile.";render()}}
+render();
+(async()=>{try{sample=await claude.use("sample")}catch(e){}
+ try{db=await claude.use("db");const u=await claude.use("user");myId=u?await u.id():null;if(S){syncProfile();if(due()&&!$("#md")){modal={r:3,f:"Yes"};showModal()}render()}}catch(e){}})();
+if(S&&due()){modal={r:3,f:"Yes"};showModal()}
+</script></body></html>
